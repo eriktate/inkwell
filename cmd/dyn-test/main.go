@@ -30,4 +30,21 @@ func main() {
 	}
 
 	log.WithField("Returned Blog", getBlog).Println("Retrieved")
+
+	log.Println("Publishing blog...")
+	if err := blogService.Publish(testBlog.ID); err != nil {
+		log.WithError(err).Println("Failed to publish blog.")
+	}
+
+	if err := blogService.Revise(testBlog.ID, "something"); err != nil {
+		log.WithError(err).Println("Failed to revise blog.")
+	}
+
+	log.Println("Confirming publish and revision...")
+	publishedBlog, err := blogService.Get(testBlog.ID)
+	if err != nil {
+		log.WithError(err).Println("Failed to get blog.")
+	}
+
+	log.WithField("Published Blog", publishedBlog).Println("Retrieved")
 }

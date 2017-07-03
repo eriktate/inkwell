@@ -7,7 +7,7 @@ type Blog struct {
 	ID              string     `json:"id" dynamodbav:"blog_id"`
 	Title           string     `json:"title" dynamodbav:"title""`
 	AuthorID        string     `json:"authorId" dynamodbav:"authorID"`
-	Content         string     `json:"content" dynamodbav:"content"`
+	Content         string     `json:"content" dynamodbav:"-"`
 	ContentLocation string     `json:"contentLocation" dynamodbav:"content_loc"`
 	Comments        []Comment  `json:"comments" dynamodbav:"comments"`
 	Published       bool       `json:"published" dynamodbav:"published"`
@@ -32,8 +32,8 @@ type BlogService interface {
 	Get(blogID string) (Blog, error)
 	// GetByAuthor(authorID string) ([]Blog, error)
 	Write(blog Blog) error
-	// Update(blog Blog) error
-	// Publish(blogID string) error
+	Revise(blogID, content string) error
+	Publish(blogID string) error
 	// Delete(blogID string) error
 }
 

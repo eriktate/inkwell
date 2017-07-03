@@ -1,6 +1,8 @@
 package dynamo
 
 import (
+	"fmt"
+
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbattribute"
@@ -9,6 +11,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+// BlogService is a dynamo implementatino of the inkwell BlogService interface.
 type BlogService struct {
 	blogTable string
 	db        dynamodbiface.DynamoDBAPI
@@ -44,6 +47,7 @@ func (s BlogService) Get(blogID string) (inkwell.Blog, error) {
 	return blog, nil
 }
 
+// Write attempts to create or overwrite a blog in dynamo.
 func (s BlogService) Write(blog inkwell.Blog) error {
 	pbi, err := s.putBlogInput(blog)
 	if err != nil {
@@ -53,6 +57,36 @@ func (s BlogService) Write(blog inkwell.Blog) error {
 	// TODO: Maybe do something with the output at some point?
 	_, err = s.db.PutItem(pbi)
 	return err
+}
+
+// Revise will update the content for a given blog. In dynamo, this means
+// updating the content location (likely housed in s3). This is an action that
+// probably won't be performed very often.
+func (s BlogService) Revise(blogID, contentLoc string) error {
+	rbi, err := s.reviseBlogInput(blogID, contentLoc)
+	if err != nil {
+		return err
+	}
+
+	if _, err := s.db.UpdateItem(rbi); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// Publish will mark a given blog as published.
+func (s BlogService) Publish(blogID string) error {
+	pbi, err := s.publishBlogInput(blogID)
+	if err != nil {
+		return err
+	}
+
+	if _, err := s.db.UpdateItem(pbi); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (s BlogService) getBlogInput(blogID string) (*dynamodb.GetItemInput, error) {
@@ -81,5 +115,71 @@ func (s BlogService) putBlogInput(blog inkwell.Blog) (*dynamodb.PutItemInput, er
 	return &dynamodb.PutItemInput{
 		Item:      avMap,
 		TableName: aws.String(s.blogTable),
+	}, nil
+}
+
+func (s BlogService) publishBlogInput(blogID string) (*dynamodb.UpdateItemInput, error) {
+	attrKey, err := dynamodbattribute.Marshal(blogID)
+	if err != nil {
+		return nil, err
+	}
+
+	key := map[string]*dynamodb.AttributeValue{
+		"blog_id": attrKey,
+	}
+
+	publishVal := &dynamodb.AttributeValue{
+		BOOL: aws.Bool(true),
+	}
+
+	expressionNames := map[string]*string{
+		"#published": aws.String("published"),
+	}
+
+	expressionValues := map[string]*dynamodb.AttributeValue{
+		":published": publishVal,
+	}
+
+	expression := fmt.Sprintf("SET #published = :published")
+
+	return &dynamodb.UpdateItemInput{
+		Key: key,
+		ExpressionAttributeNames:  expressionNames,
+		ExpressionAttributeValues: expressionValues,
+		UpdateExpression:          aws.String(expression),
+		TableName:                 aws.String(s.blogTable),
+	}, nil
+}
+
+func (s BlogService) reviseBlogInput(blogID, contentLoc string) (*dynamodb.UpdateItemInput, error) {
+	attrKey, err := dynamodbattribute.Marshal(blogID)
+	if err != nil {
+		return nil, err
+	}
+
+	key := map[string]*dynamodb.AttributeValue{
+		"blog_id": attrKey,
+	}
+
+	reviseVal := &dynamodb.AttributeValue{
+		S: aws.String(contentLoc),
+	}
+
+	expressionNames := map[string]*string{
+		"#contentLoc": aws.String("content_loc"),
+	}
+
+	expressionValues := map[string]*dynamodb.AttributeValue{
+		":contentLoc": reviseVal,
+	}
+
+	expression := fmt.Sprintf("SET #contentLoc = :contentLoc")
+
+	return &dynamodb.UpdateItemInput{
+		Key: key,
+		ExpressionAttributeNames:  expressionNames,
+		ExpressionAttributeValues: expressionValues,
+		UpdateExpression:          aws.String(expression),
+		TableName:                 aws.String(s.blogTable),
 	}, nil
 }
