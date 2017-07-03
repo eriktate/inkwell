@@ -23,7 +23,7 @@ func NewClient(env string, db dynamodbiface.DynamoDBAPI) *Client {
 	if db == nil {
 		if env == "local" {
 			localDynamo := os.Getenv("LOCAL_DYNAMO")
-			log.WithField("Local Dynamo", localDynamo).Println("Connecting to")
+			log.WithField("Local Dynamo", localDynamo).Println("Connecting to dynamo...")
 			db = dynamodb.New(session.New(&aws.Config{
 				Endpoint:    aws.String(localDynamo),
 				Credentials: credentials.NewStaticCredentials("local", "test", "stuff"),
