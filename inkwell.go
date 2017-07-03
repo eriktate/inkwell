@@ -30,9 +30,9 @@ type Comment struct {
 // considered a valid backend for dealing with blogs.
 type BlogService interface {
 	Get(blogID string) (Blog, error)
-	GetByAuthor(authorID string) ([]Blog, error)
+	// GetByAuthor(authorID string) ([]Blog, error)
 	Write(blog Blog) error
-	Update(blog Blog) error
-	Publish(blogID string) error
-	Delete(blogID string) error
+	// Update(blog Blog) error
+	// Publish(blogID string) error
+	// Delete(blogID string) error
 }

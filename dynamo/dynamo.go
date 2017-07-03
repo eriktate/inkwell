@@ -25,15 +25,15 @@ func NewClient(env string, db dynamodbiface.DynamoDBAPI) *Client {
 			localDynamo := os.Getenv("LOCAL_DYNAMO")
 			db = dynamodb.New(session.New(&aws.Config{
 				Endpoint:    aws.String(localDynamo),
-				Credentials: credentials.NewStaticCredentials("local"),
+				Credentials: credentials.NewStaticCredentials("local", "test", "stuff"),
 				Region:      aws.String("us-east-1"),
 			}))
 
-			if err := initTables(); err != nil {
+			if err := initTables(db); err != nil {
 				log.WithError(err).Errorln("Failed to init tables!")
 			}
 		} else {
-			db = dynamodb.New(session.New(), aws.NewConfig().withRegion("us-east-1"))
+			db = dynamodb.New(session.New(), aws.NewConfig().WithRegion("us-east-1"))
 		}
 	}
 
