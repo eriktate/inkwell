@@ -4,16 +4,16 @@ import "time"
 
 // A Blog represents all of the fields that make up an Inkwell blog.
 type Blog struct {
-	ID              string     `json:"id"`
-	Title           string     `json:"title"`
-	AuthorID        string     `json:"authorId"`
-	Content         string     `json:"content"`
-	ContentLocation string     `json:"contentLocation"`
-	Comments        []Comment  `json:"comments"`
-	Published       bool       `json:"published"`
-	CreatedAt       time.Time  `json:"createdAt"`
-	UpdatedAt       time.Time  `json:"updatedAt"`
-	DeletedAt       *time.Time `json:"deletedAt,omitempty"`
+	ID              string     `json:"id" dynamodbav:"blog_id"`
+	Title           string     `json:"title" dynamodbav:"title""`
+	AuthorID        string     `json:"authorId" dynamodbav:"authorID"`
+	Content         string     `json:"content" dynamodbav:"content"`
+	ContentLocation string     `json:"contentLocation" dynamodbav:"content_loc"`
+	Comments        []Comment  `json:"comments" dynamodbav:"comments"`
+	Published       bool       `json:"published" dynamodbav:"published"`
+	CreatedAt       time.Time  `json:"createdAt" dynamodbav:"created_at"`
+	UpdatedAt       time.Time  `json:"updatedAt" dynamodbav:"updated_at"`
+	DeletedAt       *time.Time `json:"deletedAt,omitempty" dynamodbav:"deleted_at"`
 }
 
 // A Comment represents all of the fields that make up an Inkwell blog comment.
@@ -35,4 +35,9 @@ type BlogService interface {
 	// Update(blog Blog) error
 	// Publish(blogID string) error
 	// Delete(blogID string) error
+}
+
+// Client wraps concrete implementations of all required inkwell services.
+type Client interface {
+	BlogService() BlogService
 }

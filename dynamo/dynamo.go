@@ -23,6 +23,7 @@ func NewClient(env string, db dynamodbiface.DynamoDBAPI) *Client {
 	if db == nil {
 		if env == "local" {
 			localDynamo := os.Getenv("LOCAL_DYNAMO")
+			log.WithField("Local Dynamo", localDynamo).Println("Connecting to")
 			db = dynamodb.New(session.New(&aws.Config{
 				Endpoint:    aws.String(localDynamo),
 				Credentials: credentials.NewStaticCredentials("local", "test", "stuff"),
@@ -49,5 +50,5 @@ func (c *Client) BlogService() inkwell.BlogService {
 }
 
 func initTables(db dynamodbiface.DynamoDBAPI) error {
-	return initTable(db, "blog", "blog_id")
+	return initTable(db, "blogs", "blog_id")
 }

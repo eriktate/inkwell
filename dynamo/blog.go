@@ -72,11 +72,12 @@ func (s BlogService) getBlogInput(blogID string) (*dynamodb.GetItemInput, error)
 }
 
 func (s BlogService) putBlogInput(blog inkwell.Blog) (*dynamodb.PutItemInput, error) {
-	avMap, err := dynamodbattribute.MarshalMap(blog)
+	avMap, err := dynamodbattribute.MarshalMap(&blog)
 	if err != nil {
 		return nil, err
 	}
 
+	log.WithField("avMap", avMap).Println("About to write")
 	return &dynamodb.PutItemInput{
 		Item:      avMap,
 		TableName: aws.String(s.blogTable),
