@@ -28,7 +28,7 @@ func NewBlogService(svc s3iface.S3API, bucket string) BlogService {
 func (s BlogService) Get(authorID, blogID string) (inkwell.Blog, error) {
 	var blog inkwell.Blog
 
-	gbo, err := s.svc.GetObject(s.getBlogInput(fmt.Sprintf("%s/%s", authorID, blogID)))
+	gbo, err := s.svc.GetObject(s.getBlogInput(fmt.Sprintf("%s/%s/post.toml", authorID, blogID)))
 	if err != nil {
 		return blog, err
 	}
