@@ -12,6 +12,7 @@ import (
 )
 
 type BlogService struct {
+	inkwell.BlogService
 	svc    s3iface.S3API
 	bucket string
 }
@@ -23,7 +24,7 @@ func NewBlogService(svc s3iface.S3API, bucket string) BlogService {
 	}
 }
 
-// GetBlog returns a blog with content from s3.
+// Get returns a blog with content from s3.
 func (s BlogService) Get(authorID, blogID string) (inkwell.Blog, error) {
 	var blog inkwell.Blog
 
@@ -32,13 +33,15 @@ func (s BlogService) Get(authorID, blogID string) (inkwell.Blog, error) {
 		return blog, err
 	}
 
+	defer gbo.Body.Close()
+
 	data, err := ioutil.ReadAll(gbo.Body)
 	if err != nil {
 		return blog, err
 	}
 
 	blog.AuthorID = authorID
-	blog.BlogID = blogID
+	blog.ID = blogID
 	blog.Content = string(data)
 
 	return blog, nil
@@ -55,22 +58,46 @@ func (s BlogService) Write(blog inkwell.Blog) error {
 	return nil
 }
 
-func (s BlogService) Publish(authorID, blogID string) error {
-	_, err := s.svc.PutObjectAcl(putBlogAcl(fmt.Sprintf("%s/%s", authorID, blogID)))
+func (s BlogService) Revise(authorID, blogID, content string) error {
+	path := fmt.Sprintf("%s/%s", authorID, blogID)
+	_, err := s.svc.PutObject(s.reviseBlogInput(path, content))
 	return err
 }
 
-func (s BlogService) getBlogInput(path string) *s3.GetObjetInput {
+func (s BlogService) Publish(authorID, blogID string) error {
+	path := fmt.Sprintf("%s/%s", authorID, blogID)
+	_, err := s.svc.PutObjectAcl(s.publishBlogInput(path))
+	return err
+}
+
+func (s BlogService) Redact(authorID, blogID string) error {
+	path := fmt.Sprintf("%s/%s", authorID, blogID)
+	_, err := s.svc.PutObjectAcl(s.redactBlogInput(path))
+	return err
+}
+
+func (s BlogService) Delete(authorID, blogID string) error {
+	path := fmt.Sprintf("%s/%s", authorID, blogID)
+	_, err := s.svc.DeleteObject(s.deleteBlogInput(path))
+	return err
+}
+
+func (s BlogService) getBlogInput(path string) *s3.GetObjectInput {
 	return &s3.GetObjectInput{
-		BucketName: aws.String(s.bucket),
-		Key:        aws.String(fmt.Sprintf("%s.md", path)),
-	}, nil
+		Bucket: aws.String(s.bucket),
+		Key:    aws.String(fmt.Sprintf("%s.md", path)),
+	}
 }
 
 func (s BlogService) putBlogInput(blog inkwell.Blog) *s3.PutObjectInput {
-	path := fmt.Sprintf("%s/%s", blog.AuthorID, blog.BlogID)
+	path := fmt.Sprintf("%s/%s/", blog.AuthorID, blog.ID)
 	content := []byte(blog.Content)
 	body := bytes.NewReader(content)
+	acl := s3.ObjectCannedACLPrivate
+
+	if blog.Published {
+		acl = s3.ObjectCannedACLPublicRead
+	}
 
 	if blog.Published {
 		// TODO: The ACL on this item should be different depending on whether the blog is published.
@@ -78,14 +105,49 @@ func (s BlogService) putBlogInput(blog inkwell.Blog) *s3.PutObjectInput {
 	}
 
 	return &s3.PutObjectInput{
-		BucketName:      aws.String(s.bucket),
-		Key:             aws.String(fmt.Sprintf("%s.md", path)),
+		Bucket:          aws.String(s.bucket),
+		Key:             aws.String(fmt.Sprintf("%sindex.html", path)),
 		Body:            body,
-		ContentLength:   int64(len(content)),
+		ContentLength:   aws.Int64(int64(len(content))),
 		ContentEncoding: aws.String("utf-8"),
+		ContentType:     aws.String("text/html"),
+		ACL:             aws.String(acl),
 	}
 }
 
-func (s BlogService) putBlogAcl(path string, published bool) *s3.PutObjectAclInput {
-	return &s3.PutObjectAclInput{}
+func (s BlogService) reviseBlogInput(path, newContent string) *s3.PutObjectInput {
+	content := []byte(newContent)
+	body := bytes.NewReader(content)
+
+	return &s3.PutObjectInput{
+		Bucket:          aws.String(s.bucket),
+		Key:             aws.String(fmt.Sprintf("%s.html", path)),
+		Body:            body,
+		ContentLength:   aws.Int64(int64(len(content))),
+		ContentEncoding: aws.String("utf-8"),
+		ContentType:     aws.String("text/html"),
+	}
+}
+
+func (s BlogService) publishBlogInput(path string) *s3.PutObjectAclInput {
+	return &s3.PutObjectAclInput{
+		ACL:    aws.String(s3.ObjectCannedACLPublicRead),
+		Bucket: aws.String(s.bucket),
+		Key:    aws.String(fmt.Sprintf("%s.html", path)),
+	}
+}
+
+func (s BlogService) redactBlogInput(path string) *s3.PutObjectAclInput {
+	return &s3.PutObjectAclInput{
+		ACL:    aws.String(s3.ObjectCannedACLPrivate),
+		Bucket: aws.String(s.bucket),
+		Key:    aws.String(fmt.Sprintf("%s.html", path)),
+	}
+}
+
+func (s BlogService) deleteBlogInput(path string) *s3.DeleteObjectInput {
+	return &s3.DeleteObjectInput{
+		Bucket: aws.String(s.bucket),
+		Key:    aws.String(fmt.Sprintf("%s.html", path)),
+	}
 }

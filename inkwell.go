@@ -31,8 +31,9 @@ type BlogService interface {
 	Get(authorID, blogID string) (Blog, error)
 	// GetByAuthor(authorID string) ([]Blog, error)
 	Write(blog Blog) error
-	Revise(blogID, content string) error
-	Publish(blogID string) error
+	Revise(authorID, blogID, content string) error
+	Publish(authorID, blogID string) error
+	Redact(authorID, blogID string) error
 	// Delete(blogID string) error
 }
 
