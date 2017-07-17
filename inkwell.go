@@ -1,6 +1,11 @@
 package inkwell
 
-import "time"
+import (
+	"fmt"
+	"time"
+
+	"github.com/eriktate/inkwell/html"
+)
 
 // A Blog represents all of the fields that make up an Inkwell blog.
 type Blog struct {
@@ -35,6 +40,57 @@ type BlogService interface {
 	Publish(authorID, blogID string) error
 	Redact(authorID, blogID string) error
 	// Delete(blogID string) error
+}
+
+type Post struct {
+	ID   string
+	Rows RowList
+}
+
+type Row struct {
+	ID      string   `json:"id" toml:"id"`
+	Columns []Column `json:"columns" toml:"columns"`
+}
+
+type RowList []Row
+
+type Column struct {
+	ID       string `json:"id" toml:"id"`
+	Contents Renderer
+}
+
+type Renderer interface {
+	Render() string
+}
+
+func (r Row) Render() string {
+	contents := ""
+	for _, col := range r.Columns {
+		contents = fmt.Sprintf("%s%s", contents, RenderColumn(col))
+	}
+
+	return contents
+}
+
+func RenderColumn(col Column) string {
+	idAttr := html.NewAttribute("id", col.ID)
+	classAttr := html.NewAttribute("class", "col")
+	return html.WrapDiv(col.Contents.Render(), idAttr, classAttr)
+}
+
+func RenderPost(post Post) string {
+	idAttr := html.NewAttribute("id", post.ID)
+	classAttr := html.NewAttribute("class", "post")
+	return html.WrapDiv(post.Rows.Render(), idAttr, classAttr)
+}
+
+func (rl RowList) Render() string {
+	contents := ""
+	for _, row := range rl {
+		contents = fmt.Sprintf("%s%s", contents, row.Render())
+	}
+
+	return contents
 }
 
 // Client wraps concrete implementations of all required inkwell services.
