@@ -7,11 +7,13 @@ import (
 	"github.com/pkg/errors"
 )
 
+// Page represents the basic structure allowed when building out a blog.
 type Page struct {
-	Header  []byte
-	Post    []byte
-	SideBar []byte
-	Footer  []byte
+	Title   string
+	Header  string
+	Post    string
+	SideBar string
+	Footer  string
 }
 
 // GeneratePage returns a full HTML document given a base template and a
