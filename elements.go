@@ -1,6 +1,10 @@
 package inkwell
 
-import "github.com/eriktate/inkwell/html"
+import (
+	"encoding/json"
+
+	"github.com/eriktate/inkwell/html"
+)
 
 // Paragraph represents a block of text content in a blog.
 type Paragraph struct {
@@ -10,7 +14,7 @@ type Paragraph struct {
 
 // Render returns the necessary DOm to represent a paragraph.
 func (p Paragraph) Render() string {
-	idAttr := NewAttribute("id", p.ID)
+	idAttr := html.NewAttribute("id", p.ID)
 	// TODO: Render markdown here.
 	return html.WrapParagraphUnsafe(p.Text, idAttr)
 }
@@ -27,10 +31,17 @@ type Image struct {
 func (i Image) Render() string {
 	idAttr := html.NewAttribute("id", i.ID)
 	altAttr := html.NewAttribute("alt", i.Alt)
-	dom := html.MakeImage(src)
+	dom := html.MakeImage(i.Src)
 	if len(i.URL) > 0 {
-		return html.WrapAnchorUnsafe(dom, i.URL, idAttr)
+		return html.WrapAnchorUnsafe(dom, i.URL, idAttr, altAttr)
 	}
 
 	return dom
+}
+
+// BuildParagraph takes a bytee slicee of JSON and prepares a Paragraph to be rendered.
+func BuildParagraph(data []byte) (Paragraph, error) {
+	var p Paragraph
+	err := json.Unmarshal(data, &p)
+	return p, err
 }

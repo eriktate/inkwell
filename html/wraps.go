@@ -54,16 +54,6 @@ func MakeImage(src string, attrs ...Attribute) string {
 	return fmt.Sprintf("<img src=\"%s\"%s />", src, stringifyAttributes(attrs))
 }
 
-func stringifyAttributes(attrs []Attribute) string {
-	var result string
-
-	for _, attr := range attrs {
-		result = fmt.Sprintf("%s %s=\"%s\"", result, attr.Key, attr.Val)
-	}
-
-	return result
-}
-
 // EscapeString HTML escapes the given string.
 func EscapeString(s string) string {
 	return html.EscapeString(s)
@@ -72,4 +62,14 @@ func EscapeString(s string) string {
 // UnescapeString reverts any HTML escaping present on the given string.
 func UnescapeString(s string) string {
 	return html.UnescapeString(s)
+}
+
+func stringifyAttributes(attrs []Attribute) string {
+	var result string
+
+	for _, attr := range attrs {
+		result = fmt.Sprintf("%s %s=\"%s\"", result, attr.Key, attr.Val)
+	}
+
+	return result
 }
