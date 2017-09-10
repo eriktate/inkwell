@@ -46,7 +46,7 @@ func Test_GetBlog(t *testing.T) {
 		svc := dynamo.NewBlogService(db, "blogs")
 
 		Convey("When attempt to get a blog", func() {
-			blog, err := svc.Get("test")
+			blog, err := svc.Get("auth1", "test")
 			Convey("A non-zero blog should be returned", func() {
 				So(blog.Title, ShouldNotEqual, "")
 			})

@@ -12,12 +12,15 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+// Client provides an S3 implemention of the inkwell.Client interface.
 type Client struct {
 	svc         s3iface.S3API
 	blogService BlogService
 }
 
+// NewClient returns a new S3 inkwell client.
 func NewClient(env string, svc s3iface.S3API) *Client {
+	log.Println("Dialing s3...")
 	if svc == nil {
 		if env == "local" {
 			localS3 := os.Getenv("LOCAL_S3")
@@ -38,6 +41,8 @@ func NewClient(env string, svc s3iface.S3API) *Client {
 	}
 }
 
+// BlogService fulfills the inwekll.Client interface and provides an S3
+// implementation of an inkwell.BlogService
 func (c *Client) BlogService() inkwell.BlogService {
 	return c.blogService
 }

@@ -19,7 +19,10 @@ type Client struct {
 	blogService BlogService
 }
 
+// NewClient returns a new dynamo Client configured with the given env
+// and optional existing dynamo db.
 func NewClient(env string, db dynamodbiface.DynamoDBAPI) *Client {
+	log.Println("Dialing dynamo...")
 	if db == nil {
 		if env == "local" {
 			localDynamo := os.Getenv("LOCAL_DYNAMO")

@@ -44,6 +44,12 @@
   version = "v0.8.0"
 
 [[projects]]
+  name = "github.com/pressly/chi"
+  packages = ["."]
+  revision = "04ec7fc4179604b2390947258f9143eaae23b596"
+  version = "v3.2.1"
+
+[[projects]]
   name = "github.com/sirupsen/logrus"
   packages = ["."]
   revision = "202f25545ea4cf9b191ff7f846df5d87c9382c2b"
@@ -70,6 +76,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "0d538d0b6cbbd0b2feef4e7f44d7480e6f90c4a23e4fb86b01d8fd0d1faa60c6"
+  inputs-digest = "fac2e4a7d847e037b5746f0043320e15fc47595c8a6f7a7e84fd1883a505bf3f"
   solver-name = "gps-cdcl"
   solver-version = 1

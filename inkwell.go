@@ -12,9 +12,9 @@ import (
 type Blog struct {
 	ID        string     `json:"id" dynamodbav:"blog_id"`
 	Title     string     `json:"title" dynamodbav:"title"`
-	AuthorID  string     `json:"authorId" dynamodbav:"authorID"`
+	AuthorID  string     `json:"authorId" dynamodbav:"author_id"`
 	Content   string     `json:"content" dynamodbav:"-"`
-	Comments  []Comment  `json:"comments" dynamodbav:"comments"`
+	Comments  []Comment  `json:"comments,omitempty" dynamodbav:"comments"`
 	Published bool       `json:"published" dynamodbav:"published"`
 	CreatedAt time.Time  `json:"createdAt" dynamodbav:"created_at"`
 	UpdatedAt time.Time  `json:"updatedAt" dynamodbav:"updated_at"`

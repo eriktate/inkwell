@@ -32,3 +32,43 @@ func GeneratePage(base string, page Page) ([]byte, error) {
 
 	return buf.Bytes(), nil
 }
+
+// BaseTemplate exists because reasons.
+var BaseTemplate = `
+<!doctype html>
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+
+    <title>{{.Title}}</title>
+
+    <!-- Base styles -->
+    <link rel="stylesheet" href="" />
+
+    <!-- Theme styles -->
+    <link rel="stylesheet" href="" />
+
+  </head>
+  <body>
+    <header>
+      {{.Header}}
+    </header>
+
+    <main>
+      {{.Post}}
+    </main>
+
+    <aside>
+      {{.SideBar}}
+    </aside>
+
+    <footer>
+      {{.Footer}}
+    </footer>
+
+    <!-- Runtime -->
+    <script src=""></script>
+  </body>
+</html>
+`

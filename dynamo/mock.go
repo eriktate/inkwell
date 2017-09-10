@@ -6,6 +6,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbiface"
 )
 
+// nolint
 type MockDynamo struct {
 	dynamodbiface.DynamoDBAPI
 
@@ -14,10 +15,12 @@ type MockDynamo struct {
 	PutItemCalled int
 }
 
+// nolint
 func NewMockDynamo() *MockDynamo {
 	return &MockDynamo{items: make(map[string]map[string]*dynamodb.AttributeValue)}
 }
 
+// nolint
 func (m *MockDynamo) AddItem(tableName string, item interface{}) error {
 	av, err := dynamodbattribute.MarshalMap(item)
 	if err != nil {
@@ -28,6 +31,7 @@ func (m *MockDynamo) AddItem(tableName string, item interface{}) error {
 	return nil
 }
 
+// nolint
 func (m *MockDynamo) GetItem(gii *dynamodb.GetItemInput) (*dynamodb.GetItemOutput, error) {
 	var gio dynamodb.GetItemOutput
 	gio.Item = m.items[*gii.TableName]
@@ -35,6 +39,7 @@ func (m *MockDynamo) GetItem(gii *dynamodb.GetItemInput) (*dynamodb.GetItemOutpu
 	return &gio, nil
 }
 
+// nolint
 func (m *MockDynamo) PutItem(pii *dynamodb.PutItemInput) (*dynamodb.PutItemOutput, error) {
 	m.PutItemCalled += 1
 	return &dynamodb.PutItemOutput{}, nil

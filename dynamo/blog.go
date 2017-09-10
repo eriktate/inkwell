@@ -2,6 +2,7 @@ package dynamo
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
@@ -17,6 +18,8 @@ type BlogService struct {
 	db        dynamodbiface.DynamoDBAPI
 }
 
+// NewBlogService returns a dynamo implementation of the inkwell BlogService
+// interface.
 func NewBlogService(db dynamodbiface.DynamoDBAPI, blogTable string) BlogService {
 	return BlogService{
 		blogTable: blogTable,
@@ -24,10 +27,11 @@ func NewBlogService(db dynamodbiface.DynamoDBAPI, blogTable string) BlogService 
 	}
 }
 
-func (s BlogService) Get(blogID string) (inkwell.Blog, error) {
+// Get returns data related to a given blog that's stored in dynamo.
+func (s BlogService) Get(authorID, blogID string) (inkwell.Blog, error) {
 	var blog inkwell.Blog
 
-	gbi, err := s.getBlogInput(blogID)
+	gbi, err := s.getBlogInput(authorID, blogID)
 	if err != nil {
 		log.WithError(err).Error("Failed to create GetItemInput.")
 		return blog, err
@@ -49,6 +53,20 @@ func (s BlogService) Get(blogID string) (inkwell.Blog, error) {
 
 // Write attempts to create or overwrite a blog in dynamo.
 func (s BlogService) Write(blog inkwell.Blog) error {
+	blog.CreatedAt = time.Now()
+	blog.UpdatedAt = time.Now()
+
+	// check for existing
+	existing, err := s.Get(blog.AuthorID, blog.ID)
+	if err != nil {
+		return err
+	}
+
+	// if existing, don't change created at date
+	if existing.ID != "" {
+		blog.CreatedAt = existing.CreatedAt
+	}
+
 	pbi, err := s.putBlogInput(blog)
 	if err != nil {
 		return err
@@ -62,8 +80,8 @@ func (s BlogService) Write(blog inkwell.Blog) error {
 // Revise will update the content for a given blog. In dynamo, this means
 // updating the content location (likely housed in s3). This is an action that
 // probably won't be performed very often.
-func (s BlogService) Revise(blogID, contentLoc string) error {
-	rbi, err := s.reviseBlogInput(blogID, contentLoc)
+func (s BlogService) Revise(authorID, blogID, contentLoc string) error {
+	rbi, err := s.reviseBlogInput(authorID, blogID, contentLoc)
 	if err != nil {
 		return err
 	}
@@ -76,8 +94,8 @@ func (s BlogService) Revise(blogID, contentLoc string) error {
 }
 
 // Publish will mark a given blog as published.
-func (s BlogService) Publish(blogID string) error {
-	pbi, err := s.publishBlogInput(blogID)
+func (s BlogService) Publish(authorID, blogID string) error {
+	pbi, err := s.publishBlogInput(authorID, blogID, true)
 	if err != nil {
 		return err
 	}
@@ -89,14 +107,34 @@ func (s BlogService) Publish(blogID string) error {
 	return nil
 }
 
-func (s BlogService) getBlogInput(blogID string) (*dynamodb.GetItemInput, error) {
-	av, err := dynamodbattribute.Marshal(blogID)
+// Redact will mark a given blog as unpublished.
+func (s BlogService) Redact(authorID, blogID string) error {
+	rbi, err := s.publishBlogInput(authorID, blogID, false)
+	if err != nil {
+		return err
+	}
+
+	if _, err := s.db.UpdateItem(rbi); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (s BlogService) getBlogInput(authorID, blogID string) (*dynamodb.GetItemInput, error) {
+	authorAV, err := dynamodbattribute.Marshal(authorID)
+	if err != nil {
+		return nil, err
+	}
+
+	blogAV, err := dynamodbattribute.Marshal(blogID)
 	if err != nil {
 		return nil, err
 	}
 
 	key := map[string]*dynamodb.AttributeValue{
-		"blog_id": av,
+		"author_id": authorAV,
+		"blog_id":   blogAV,
 	}
 
 	return &dynamodb.GetItemInput{
@@ -118,18 +156,24 @@ func (s BlogService) putBlogInput(blog inkwell.Blog) (*dynamodb.PutItemInput, er
 	}, nil
 }
 
-func (s BlogService) publishBlogInput(blogID string) (*dynamodb.UpdateItemInput, error) {
-	attrKey, err := dynamodbattribute.Marshal(blogID)
+func (s BlogService) publishBlogInput(authorID, blogID string, status bool) (*dynamodb.UpdateItemInput, error) {
+	authorAV, err := dynamodbattribute.Marshal(authorID)
+	if err != nil {
+		return nil, err
+	}
+
+	blogAV, err := dynamodbattribute.Marshal(blogID)
 	if err != nil {
 		return nil, err
 	}
 
 	key := map[string]*dynamodb.AttributeValue{
-		"blog_id": attrKey,
+		"author_id": authorAV,
+		"blog_id":   blogAV,
 	}
 
 	publishVal := &dynamodb.AttributeValue{
-		BOOL: aws.Bool(true),
+		BOOL: aws.Bool(status),
 	}
 
 	expressionNames := map[string]*string{
@@ -151,29 +195,45 @@ func (s BlogService) publishBlogInput(blogID string) (*dynamodb.UpdateItemInput,
 	}, nil
 }
 
-func (s BlogService) reviseBlogInput(blogID, contentLoc string) (*dynamodb.UpdateItemInput, error) {
-	attrKey, err := dynamodbattribute.Marshal(blogID)
+func (s BlogService) reviseBlogInput(authorID, blogID, contentLoc string) (*dynamodb.UpdateItemInput, error) {
+	authorAV, err := dynamodbattribute.Marshal(authorID)
+	if err != nil {
+		return nil, err
+	}
+
+	blogAV, err := dynamodbattribute.Marshal(blogID)
 	if err != nil {
 		return nil, err
 	}
 
 	key := map[string]*dynamodb.AttributeValue{
-		"blog_id": attrKey,
+		"author_id": authorAV,
+		"blog_id":   blogAV,
 	}
 
-	reviseVal := &dynamodb.AttributeValue{
-		S: aws.String(contentLoc),
+	now := time.Now()
+	updatedAt, err := dynamodbattribute.Marshal(&now)
+	if err != nil {
+		return nil, err
 	}
 
 	expressionNames := map[string]*string{
-		"#contentLoc": aws.String("content_loc"),
+		"#updatedAt": aws.String("updated_at"),
 	}
 
 	expressionValues := map[string]*dynamodb.AttributeValue{
-		":contentLoc": reviseVal,
+		":updatedAt": updatedAt,
 	}
+	// expressionNames := map[string]*string{
+	// 	"#contentLoc": aws.String("content_loc"),
+	// }
 
-	expression := fmt.Sprintf("SET #contentLoc = :contentLoc")
+	// expressionValues := map[string]*dynamodb.AttributeValue{
+	// 	":contentLoc": reviseVal,
+	// }
+
+	// expression := fmt.Sprintf("SET #contentLoc = :contentLoc")
+	expression := fmt.Sprintf("SET #updatedAt = :updatedAt")
 
 	return &dynamodb.UpdateItemInput{
 		Key: key,
