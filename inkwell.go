@@ -28,7 +28,7 @@ type BlogWriter interface {
 // A BlogReader knows how to fetch Blog data.
 type BlogReader interface {
 	Get(authorID, key string) (Blog, error)
-	GetBlogsByAuthor(authorID string) ([]Blog, error)
+	GetByAuthor(authorID string) ([]Blog, error)
 }
 
 // A BlogReadWriter knows how to fetch and persist Blog data.
