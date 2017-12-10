@@ -120,6 +120,43 @@ func (c *Client) Write(blog inkwell.Blog) error {
 	return nil
 }
 
+// SetTitle updates the title of a blog. It first fetches the current state of
+// the blog and then re-uploads the blog with the new title. This operation
+// is prone to race conditions since it replaces the entire state of the blog.
+func (c *Client) SetTitle(authorID, key, title string) error {
+	blog, err := c.Get(authorID, key)
+	if err != nil {
+		return errors.Wrap(err, "Failed to fetch blog to set title")
+	}
+
+	blog.Title = title
+
+	if err := c.Write(blog); err != nil {
+		return errors.Wrap(err, "Failed to write blog with new title")
+	}
+
+	return nil
+}
+
+// SetContent updates the content of a blog. It first fetches the current
+// state of the blog and then re-uploads the blog with the new content. This
+// operation is prone to race conditions since it replaces the entire state of
+// the blog.
+func (c *Client) SetContent(authorID, key string, content []byte) error {
+	blog, err := c.Get(authorID, key)
+	if err != nil {
+		return errors.Wrap(err, "Failed to fetch blog to set content")
+	}
+
+	blog.Content = content
+
+	if err := c.Write(blog); err != nil {
+		return errors.Wrap(err, "Failed to write blog with new content")
+	}
+
+	return nil
+}
+
 // Publish sets the ACL for the blog in S3 to PublicRead.
 func (c *Client) Publish(authorID, key string) error {
 	poi := &s3.PutObjectAclInput{

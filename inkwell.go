@@ -36,3 +36,25 @@ type BlogReadWriter interface {
 	BlogWriter
 	BlogReader
 }
+
+// An Author represents someone who writes blogs within inkwell.
+type Author struct {
+	AuthorID string
+	// TODO: Flesh out author more
+}
+
+// An AuthorReader knows how to fetch Author data.
+type AuthorReader interface {
+	Get(authorID string) (Author, error)
+}
+
+// An AuthorWriter knows how to persist Author data.
+type AuthorWriter interface {
+	Write(author Author) error
+}
+
+// An AuthorReadWriter knows how to fetch and persist Author data.
+type AuthorReadWriter interface {
+	AuthorReader
+	AuthorWriter
+}
